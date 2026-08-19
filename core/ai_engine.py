@@ -7,7 +7,7 @@ from colorama import Fore, Style
 class AIEngine:
     def __init__(self):
         self.context = {
-            "user_name": "Boss",
+            "user_name": "You",
             "session_start": datetime.datetime.now().strftime("%H:%M:%S")
         }
         # Memory storage for the session
