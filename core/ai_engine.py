@@ -7,7 +7,7 @@ from colorama import Fore, Style
 class AIEngine:
     def __init__(self):
         self.context = {
-            "user_name": "You",
+            "user_name": "Boss",
             "session_start": datetime.datetime.now().strftime("%H:%M:%S")
         }
         # Memory storage for the session
@@ -166,3 +166,24 @@ class AIEngine:
             reply = f"I processed your input via my custom logic engine: '{user_input}'. Try typing 'help' to see my built-in commands!"
 
         print(f"\n{Fore.CYAN}Yuwontlaykit >{Style.RESET_ALL} {reply}\n")
+
+
+def main():
+    engine = AIEngine()
+    print(f"{Fore.CYAN}Yuwontlaykit >{Style.RESET_ALL} Hey there! I'm up and running. Type 'help' anytime, or 'exit'/'quit' to close.\n")
+
+    while True:
+        user_input = input(f"{Fore.GREEN}You >{Style.RESET_ALL} ").strip()
+
+        if user_input.lower() in ["exit", "quit"]:
+            print(f"\n{Fore.CYAN}Yuwontlaykit >{Style.RESET_ALL} See you later, Boss! Take care.\n")
+            sys.exit(0)
+
+        if not user_input:
+            continue
+
+        engine.chat(user_input)
+
+
+if __name__ == "__main__":
+    main()
