@@ -19,7 +19,14 @@ class AIEngine:
             reply = "I'm Yuwontlaykit, Nikko's good friend and right-hand assistant!"
 
         # 1.5. Nikko's Detailed Bio Profile
-        elif any(phrase in text for phrase in ["what do you know about nikko", "who is nikko", "tell me about nikko"]):
+        elif any(phrase in text for phrase in [
+            "what do you know about nikko", 
+            "who is nikko", 
+            "tell me about nikko",
+            "what do you know about him",
+            "tell me about him",
+            "who is he"
+        ]):
             reply = (
                 "Here is everything I know about my best friend, Nikko:\n\n"
                 "  • Full Name: Abdulrahman Bedis Kumam Salindal\n"
