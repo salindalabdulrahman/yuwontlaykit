@@ -13,6 +13,10 @@ class AIEngine:
 
     def chat(self, user_input):
         text = user_input.lower().strip()
+
+        # 0. Friendly Greetings (ADD HERE)
+        if any(w in text for w in ["hi", "hello", "hey", "greetings"]):
+            reply = "Hey Boss! Great to hear from you. What are we working on today?"
         
         # 1. Identity & Persona Rules
         if any(w in text for who in ["who are you", "your name", "what are you"] for w in [who]):
