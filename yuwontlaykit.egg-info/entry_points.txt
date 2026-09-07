@@ -1,2 +1,4 @@
 [console_scripts]
+4782 = main:main
+yuwon = main:main
 yuwontlaykit = main:main
