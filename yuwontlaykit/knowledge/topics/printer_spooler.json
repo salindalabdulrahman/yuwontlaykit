@@ -1,0 +1,36 @@
+{
+  "id": "printer_spooler",
+  "domain": "printer",
+  "problem": "Print Spooler Failure",
+  "technical_name": "Spooler service stopped or not running",
+  "symptoms": [
+    "cannot print",
+    "printer window won't open",
+    "spooler error"
+  ],
+  "possible_causes": [
+    "Print Spooler service stopped",
+    "Spooler crashed",
+    "Service disabled"
+  ],
+  "diagnostic_checks": [
+    "check_print_spooler",
+    "get_windows_services"
+  ],
+  "expected_results": {
+    "running": "Spooler Status Running"
+  },
+  "risk_level": "LOW_RISK_MODIFICATION",
+  "required_permission": true,
+  "remediation": {
+    "tool": "restart_print_spooler",
+    "label": "restart Windows' printing system",
+    "user_impact": "This briefly stops and starts the printing service. It does not delete your files. Administrator permission is often required."
+  },
+  "verification": ["check_print_spooler"],
+  "rollback": "Restarting again returns the service to a running state in most cases.",
+  "plain_language": {
+    "problem": "Windows' printing system has stopped running. That's preventing your computer from sending documents to the printer.",
+    "solution": "I can try to start that printing system again. Windows may ask for administrator permission."
+  }
+}

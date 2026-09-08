@@ -1,6 +1,8 @@
 """Chat orchestrator: routes user input to skills and profile knowledge."""
 
 from yuwontlaykit.cli import console
+from yuwontlaykit.diagnostics.consent import is_explicit_yes, is_no, is_yes
+from yuwontlaykit.diagnostics.engine import DiagnosticEngine
 from yuwontlaykit.knowledge import entry_modes
 from yuwontlaykit.knowledge.session_context import create_session_context
 from yuwontlaykit.memory.session_memory import SessionMemory
@@ -17,10 +19,12 @@ from yuwontlaykit.skills import (
     greetings,
     guest_chat,
     help_menu,
+    it_support,
     machine_scan,
     memory_skill,
     nikko_play,
     printer_help,
+    smalltalk,
 )
 
 
@@ -33,6 +37,7 @@ class AIEngine:
         )
         self.memories = SessionMemory()
         self.bedis = BedisTease(enabled=entry_modes.is_deep_nikko(mode))
+        self.diagnostics = DiagnosticEngine()
         # Preserved for compatibility with prior AIEngine API
         self.birthday = BIRTHDAY
 
@@ -56,29 +61,56 @@ class AIEngine:
             reply = self.bedis.handle_serious()
             console.set_prompt_label(self.bedis.address_name())
 
+        elif self.context.get("awaiting_clarification") and (
+            is_yes(text) or is_no(text)
+        ):
+            reply = it_support.handle(user_input, self.context, self.diagnostics)
+
+        elif (
+            self.diagnostics.active
+            and self.diagnostics.active.awaiting == "remediate_consent"
+            and (is_yes(text) or is_no(text))
+        ):
+            reply = it_support.handle(user_input, self.context, self.diagnostics)
+
+        elif (
+            self.diagnostics.active
+            and self.diagnostics.active.awaiting == "offer_diagnose_offline"
+            and (is_explicit_yes(text) or is_no(text))
+        ):
+            reply = it_support.handle(user_input, self.context, self.diagnostics)
+
+        elif self.context.get("awaiting_remove_printer") and (is_yes(text) or is_no(text)):
+            reply = it_support.handle(user_input, self.context, self.diagnostics)
+
+        elif self.context.get("awaiting_it_diagnostic") and (is_yes(text) or is_no(text)):
+            reply = it_support.handle(user_input, self.context, self.diagnostics)
+
         elif self.bedis.matches_reject(text):
             reply = self.bedis.handle_reject()
             console.set_prompt_label(self.bedis.address_name())
 
+        elif it_support.matches(text, self.context, self.diagnostics):
+            reply = it_support.handle(user_input, self.context, self.diagnostics)
+
         elif machine_scan.is_awaiting(self.context):
-            # yes/no gate before the quiet machine examine
             reply = machine_scan.handle_consent(text, self.context)
 
         elif printer_help.matches(text, self.context):
-            reply = printer_help.handle(user_input, self.context)
+            reply = printer_help.handle(
+                user_input, self.context, engine=self.diagnostics
+            )
 
         elif conversation_start.matches(text):
             reply = conversation_start.reply()
+
+        elif smalltalk.matches(text):
+            reply = smalltalk.reply(text, mode=self.mode, bedis=self.bedis)
 
         elif guest_chat.matches(text, self.mode):
             reply = guest_chat.reply(text, self.context)
             if guest_chat.arms_machine_scan(text):
                 machine_scan.set_awaiting(self.context, True)
-
-        elif guest_chat.arms_machine_scan(text):
-            # Nikko (and other non-guest) modes can still trigger the examine flow
-            machine_scan.set_awaiting(self.context, True)
-            reply = guest_chat.SUPPORT_REPLY
 
         elif greetings.matches(text):
             reply = greetings.reply(mode=self.mode, bedis=self.bedis)

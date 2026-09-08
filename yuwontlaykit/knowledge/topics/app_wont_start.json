@@ -1,0 +1,33 @@
+{
+  "id": "app_wont_start",
+  "domain": "software",
+  "problem": "Application Won't Start",
+  "technical_name": "Process missing / crash / permission",
+  "symptoms": [
+    "won't open",
+    "application crashes",
+    "freezes",
+    "unresponsive"
+  ],
+  "possible_causes": [
+    "App not installed",
+    "Already running hung",
+    "Missing dependency",
+    "Permission / SmartScreen",
+    "Corrupted install"
+  ],
+  "diagnostic_checks": [
+    "get_running_processes",
+    "get_event_logs"
+  ],
+  "expected_results": {},
+  "risk_level": "READ_ONLY",
+  "required_permission": false,
+  "remediation": null,
+  "verification": ["get_running_processes"],
+  "rollback": null,
+  "plain_language": {
+    "problem": "The program is not starting or staying open. I need its name to look for it among running programs and recent error reports.",
+    "solution": "Tell me the exact app name if you can. I will not uninstall or reinstall software unless you later give permission."
+  }
+}

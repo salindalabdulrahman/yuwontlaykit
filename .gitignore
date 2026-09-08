@@ -10,3 +10,5 @@ dist/
 venv/
 .env
 .Python
+.pytest_cache/
+.yuwontlaykit/

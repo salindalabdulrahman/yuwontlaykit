@@ -20,6 +20,11 @@ def print_banner(message: str) -> None:
     print(f"{Fore.GREEN}{message}{Style.RESET_ALL}\n")
 
 
+def print_status(message: str) -> None:
+    """Quiet progress line during diagnostics — not a full assistant turn."""
+    print(f"{Fore.MAGENTA}  …{Style.RESET_ALL} {message}")
+
+
 def prompt_user() -> str:
     return input(f"{Fore.YELLOW}{_prompt_label} > {Style.RESET_ALL}")
 

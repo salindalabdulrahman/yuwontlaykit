@@ -1,0 +1,39 @@
+{
+  "id": "printer_queue_stuck",
+  "domain": "printer",
+  "problem": "Print Queue Stuck",
+  "technical_name": "Stuck / failed / paused print jobs",
+  "symptoms": [
+    "documents stuck",
+    "won't print",
+    "pending jobs",
+    "queue not moving"
+  ],
+  "possible_causes": [
+    "A failed job is blocking the queue",
+    "Print Spooler hung",
+    "Printer paused or offline",
+    "Driver error while processing a job"
+  ],
+  "diagnostic_checks": [
+    "get_print_queue",
+    "check_print_spooler",
+    "get_printer_status"
+  ],
+  "expected_results": {
+    "clear": "Zero error/stuck jobs"
+  },
+  "risk_level": "LOW_RISK_MODIFICATION",
+  "required_permission": true,
+  "remediation": {
+    "tool": "clear_print_queue",
+    "label": "clear the stuck print jobs",
+    "user_impact": "This removes pending print jobs. They will not print afterwards — you would need to print them again."
+  },
+  "verification": ["get_print_queue"],
+  "rollback": "Cannot restore deleted print jobs; user must reprint.",
+  "plain_language": {
+    "problem": "Documents are waiting in line to print and one of them is stuck, so nothing behind it can go through.",
+    "solution": "I can clear that waiting line. Those documents will be removed, then you can try printing again."
+  }
+}

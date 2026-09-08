@@ -1,0 +1,35 @@
+{
+  "id": "wifi_disconnected",
+  "domain": "wifi",
+  "problem": "Wi-Fi Not Connected",
+  "technical_name": "WLAN adapter down or no SSID association",
+  "symptoms": [
+    "wifi not connecting",
+    "no wireless",
+    "not connected to wifi"
+  ],
+  "possible_causes": [
+    "Wi-Fi turned off",
+    "Airplane mode",
+    "Adapter disabled",
+    "Wrong password / failed association",
+    "WLAN AutoConfig stopped"
+  ],
+  "diagnostic_checks": [
+    "get_wifi_information",
+    "get_network_information",
+    "get_windows_services"
+  ],
+  "expected_results": {
+    "connected": "SSID present and adapter Status Up"
+  },
+  "risk_level": "READ_ONLY",
+  "required_permission": false,
+  "remediation": null,
+  "verification": ["get_wifi_information"],
+  "rollback": null,
+  "plain_language": {
+    "problem": "Your computer is not connected to Wi-Fi.",
+    "solution": "Please check the Wi-Fi icon and make sure Wi-Fi is turned on, then pick your network. I cannot tap the physical switch for you."
+  }
+}

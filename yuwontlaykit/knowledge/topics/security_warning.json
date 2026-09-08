@@ -1,0 +1,36 @@
+{
+  "id": "security_warning",
+  "domain": "security",
+  "problem": "Security Warning",
+  "technical_name": "Defender/firewall/startup anomalies (defensive)",
+  "symptoms": [
+    "virus",
+    "malware",
+    "suspicious",
+    "popups",
+    "hacked"
+  ],
+  "possible_causes": [
+    "Real-time protection off",
+    "Firewall profile disabled",
+    "Unexpected startup program",
+    "Browser adware (not fully inspectable here)"
+  ],
+  "diagnostic_checks": [
+    "get_security_overview",
+    "get_startup_applications",
+    "get_running_processes"
+  ],
+  "expected_results": {
+    "protected": "Antivirus and real-time protection enabled"
+  },
+  "risk_level": "READ_ONLY",
+  "required_permission": false,
+  "remediation": null,
+  "verification": ["get_security_overview"],
+  "rollback": null,
+  "plain_language": {
+    "problem": "I can look for basic warning signs — protection switched off, odd startup programs — but I cannot promise a full virus scan from here.",
+    "solution": "Use Windows Security for a full scan if something still feels wrong. I will not run hacking or attack tools."
+  }
+}

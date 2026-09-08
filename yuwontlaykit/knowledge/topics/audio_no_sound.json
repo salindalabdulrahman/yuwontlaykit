@@ -1,0 +1,36 @@
+{
+  "id": "audio_no_sound",
+  "domain": "audio",
+  "problem": "No Sound",
+  "technical_name": "Audio service, devices, default output",
+  "symptoms": [
+    "can't hear anything",
+    "no sound",
+    "muted",
+    "headphones not working"
+  ],
+  "possible_causes": [
+    "Muted or volume at 0",
+    "Windows Audio service stopped",
+    "Wrong playback device",
+    "Disconnected headphones",
+    "Driver problem"
+  ],
+  "diagnostic_checks": [
+    "get_audio_information",
+    "get_windows_services",
+    "get_device_information"
+  ],
+  "expected_results": {
+    "audio_running": "Audiosrv running, devices present"
+  },
+  "risk_level": "READ_ONLY",
+  "required_permission": false,
+  "remediation": null,
+  "verification": ["get_audio_information"],
+  "rollback": null,
+  "plain_language": {
+    "problem": "The computer's sound system is not delivering audio — I will explain whether the sound service is off or no speakers/headphones are visible.",
+    "solution": "Please also check the volume icon and mute key. I cannot see if headphones are physically unplugged unless Windows reports it."
+  }
+}

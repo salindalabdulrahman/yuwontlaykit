@@ -1,0 +1,31 @@
+{
+  "id": "general_inspect",
+  "domain": "computer",
+  "problem": "General Machine Check",
+  "technical_name": "Read-only health snapshot",
+  "symptoms": [
+    "check my computer",
+    "examine",
+    "something's wrong"
+  ],
+  "possible_causes": [
+    "Unknown — inspect first"
+  ],
+  "diagnostic_checks": [
+    "get_system_information",
+    "get_disk_information",
+    "get_running_processes",
+    "get_network_information",
+    "get_printers"
+  ],
+  "expected_results": {},
+  "risk_level": "READ_ONLY",
+  "required_permission": false,
+  "remediation": null,
+  "verification": [],
+  "rollback": null,
+  "plain_language": {
+    "problem": "You asked me to look at the computer as a whole.",
+    "solution": "I will report what I can actually see — I will not guess about hardware I cannot measure."
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "id": "printer_usb",
+  "domain": "printer",
+  "problem": "USB Printer Problem",
+  "technical_name": "USB printer not present or error status",
+  "symptoms": [
+    "usb printer not found",
+    "cable printer",
+    "unplugged"
+  ],
+  "possible_causes": [
+    "Cable unplugged",
+    "Unpowered USB hub",
+    "USB device error",
+    "Driver problem"
+  ],
+  "diagnostic_checks": [
+    "get_printers",
+    "get_usb_devices",
+    "get_printer_port"
+  ],
+  "expected_results": {
+    "present": "USB printer device present with Status OK"
+  },
+  "risk_level": "READ_ONLY",
+  "required_permission": false,
+  "remediation": null,
+  "verification": ["get_usb_devices"],
+  "rollback": null,
+  "plain_language": {
+    "problem": "This looks like a cable-connected printer, and Windows is not seeing it cleanly on USB.",
+    "solution": "Please try a different USB port or cable, and make sure the printer is powered on. I cannot plug the cable in for you."
+  }
+}

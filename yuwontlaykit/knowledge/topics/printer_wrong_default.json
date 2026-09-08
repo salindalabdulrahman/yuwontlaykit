@@ -1,0 +1,32 @@
+{
+  "id": "printer_wrong_default",
+  "domain": "printer",
+  "problem": "Wrong Default Printer",
+  "technical_name": "Default printer is a virtual printer (PDF/OneNote/XPS)",
+  "symptoms": [
+    "print goes to PDF",
+    "wrong printer",
+    "nothing comes out"
+  ],
+  "possible_causes": [
+    "Microsoft Print to PDF is default",
+    "User picked the wrong device",
+    "Physical printer missing"
+  ],
+  "diagnostic_checks": [
+    "get_default_printer",
+    "get_printers"
+  ],
+  "expected_results": {
+    "physical_default": "Default is a physical printer"
+  },
+  "risk_level": "READ_ONLY",
+  "required_permission": false,
+  "remediation": null,
+  "verification": ["get_default_printer"],
+  "rollback": null,
+  "plain_language": {
+    "problem": "Windows is sending pages to a 'save as file' printer instead of the real printer on your desk.",
+    "solution": "I can show you which printer is currently selected. Changing the default printer in Settings is safer if you do it yourself — I will not silently switch printers."
+  }
+}

@@ -1,6 +1,7 @@
 """Greeting skill — tone depends on who launched the CLI.
 
 Yuwon / Yuwontlaykit is always the speaker; the user is Guest or Nikko.
+Elongated hellos like 'heyyy' are handled by ``smalltalk``.
 """
 
 from __future__ import annotations
@@ -12,12 +13,16 @@ from yuwontlaykit.people.nikko.bedis import BedisTease
 
 # Whole-word greetings only — avoids matching "hi" inside "this" / "which"
 GREETING_PATTERN = re.compile(
-    r"\b(hi|hello|hey|greetings|yo|sup)\b",
+    r"\b(hi+|hello+|hey+|greetings|yo|sup)\b",
     re.IGNORECASE,
 )
 
 
 def matches(text: str) -> bool:
+    # Defer pure hey/hi lines to smalltalk for warmer Nikko replies
+    t = text.strip()
+    if re.fullmatch(r"(hey+|hi+|hello+|yo+|sup+)[!?.]*", t, re.IGNORECASE):
+        return False
     return bool(GREETING_PATTERN.search(text))
 
 

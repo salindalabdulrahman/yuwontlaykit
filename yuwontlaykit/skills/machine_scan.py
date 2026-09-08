@@ -7,7 +7,6 @@ plays a short terminal animation while gathering results.
 
 from __future__ import annotations
 
-import platform
 import shutil
 import subprocess
 import sys
@@ -115,62 +114,55 @@ def _first_lines(text: str, limit: int = 6) -> str:
 
 
 def _check_os() -> str:
-    system = platform.system()
-    release = platform.release()
-    machine = platform.machine()
-    return f"{system} {release} ({machine})"
+    from yuwontlaykit.tools.registry import run_tool
+
+    result = run_tool("get_system_information")
+    return result.summary or _first_lines(result.raw or result.error or "unavailable")
 
 
 def _check_printer_spool() -> str:
-    if shutil.which("lpstat"):
-        code, out, err = _run_hidden(["lpstat", "-t"])
-        if code == 0 and out:
-            return _first_lines(out, 5)
-        if err:
-            return f"lpstat: {_first_lines(err, 3)}"
-        return "CUPS tools present, but no printer status returned."
-    if shutil.which("powershell.exe"):
-        code, out, err = _run_hidden(
-            [
-                "powershell.exe",
-                "-NoProfile",
-                "-NonInteractive",
-                "-Command",
-                "Get-Printer | Select-Object Name,PrinterStatus,DriverName | Format-Table -AutoSize | Out-String -Width 200",
-            ],
-            timeout=15.0,
-        )
-        if code == 0 and out.strip():
-            return _first_lines(out, 8)
-        return "Windows printer query returned nothing useful."
-    return "No local printer tools found (lpstat / PowerShell)."
+    from yuwontlaykit.tools.registry import run_tool
+
+    printers = run_tool("get_printers")
+    spooler = run_tool("check_print_spooler")
+    bits = [printers.summary, spooler.summary]
+    return " | ".join(b for b in bits if b) or "Printer check unavailable."
 
 
 def _check_usb_printers() -> str:
-    if not shutil.which("lsusb"):
-        return "lsusb not available on this system."
-    code, out, _ = _run_hidden(["lsusb"])
-    if code != 0 or not out:
-        return "Could not list USB devices."
-    printerish = [
-        line
-        for line in out.splitlines()
-        if any(token in line.lower() for token in ("print", "hp", "canon", "epson", "brother", "lexmark"))
-    ]
-    if printerish:
-        return _first_lines("\n".join(printerish), 5)
-    return "USB devices visible; none obviously labeled as a printer."
+    from yuwontlaykit.tools.registry import run_tool
+
+    usb = run_tool("get_usb_devices")
+    if usb.available and usb.success:
+        return usb.summary
+    if shutil.which("lsusb"):
+        code, out, _ = _run_hidden(["lsusb"])
+        if code != 0 or not out:
+            return "Could not list USB devices."
+        printerish = [
+            line
+            for line in out.splitlines()
+            if any(token in line.lower() for token in ("print", "hp", "canon", "epson", "brother", "lexmark"))
+        ]
+        if printerish:
+            return _first_lines("\n".join(printerish), 5)
+        return "USB devices visible; none obviously labeled as a printer."
+    return usb.summary or "USB printer check unavailable."
 
 
 def _check_disk() -> str:
-    code, out, _ = _run_hidden(["df", "-h", "/"])
-    if code == 0 and out:
-        lines = out.splitlines()
-        return lines[-1] if len(lines) >= 2 else _first_lines(out, 2)
-    return "Disk check unavailable."
+    from yuwontlaykit.tools.registry import run_tool
+
+    result = run_tool("get_disk_information")
+    return result.summary or "Disk check unavailable."
 
 
 def _check_memory() -> str:
+    from yuwontlaykit.tools.registry import run_tool
+
+    result = run_tool("get_system_information")
+    if result.success and result.summary:
+        return result.summary
     if shutil.which("free"):
         code, out, _ = _run_hidden(["free", "-h"])
         if code == 0 and out:
@@ -182,6 +174,11 @@ def _check_memory() -> str:
 
 
 def _check_cups_service() -> str:
+    from yuwontlaykit.tools.registry import run_tool
+
+    spooler = run_tool("check_print_spooler")
+    if spooler.available:
+        return spooler.summary
     if shutil.which("systemctl"):
         code, out, _ = _run_hidden(["systemctl", "is-active", "cups"])
         if out:
@@ -242,8 +239,8 @@ def run_scan_with_animation() -> str:
         "Done peeking — here's what I found inside your machine:\n"
         f"{body}\n\n"
         "Tell me what the printer does (paper jam, offline, stuck queue, "
-        "driver, toner/ink, no power, access denied…) and I'll pull up "
-        "the fix steps plus the CMD / PowerShell I can run for it."
+        "driver, toner/ink, no power, access denied…) and I'll inspect "
+        "the machine, then explain what I found in plain language."
     )
 
 

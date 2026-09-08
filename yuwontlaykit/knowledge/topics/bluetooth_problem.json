@@ -1,0 +1,33 @@
+{
+  "id": "bluetooth_problem",
+  "domain": "bluetooth",
+  "problem": "Bluetooth Problem",
+  "technical_name": "Bluetooth service or adapter not ready",
+  "symptoms": [
+    "bluetooth not working",
+    "can't pair",
+    "headphones won't connect"
+  ],
+  "possible_causes": [
+    "Bluetooth turned off",
+    "Service stopped",
+    "Adapter missing",
+    "Device not paired"
+  ],
+  "diagnostic_checks": [
+    "get_bluetooth_information",
+    "get_windows_services"
+  ],
+  "expected_results": {
+    "bt_running": "bthserv running"
+  },
+  "risk_level": "READ_ONLY",
+  "required_permission": false,
+  "remediation": null,
+  "verification": ["get_bluetooth_information"],
+  "rollback": null,
+  "plain_language": {
+    "problem": "Bluetooth on this computer is not ready — either the wireless radio service is off, or Windows does not see a Bluetooth adapter.",
+    "solution": "Turn Bluetooth on from the settings icon if you can. I cannot press that icon for you."
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "disk_full",
+  "domain": "storage",
+  "problem": "Disk Almost Full",
+  "technical_name": "Low free space on a local volume",
+  "symptoms": [
+    "out of space",
+    "disk full",
+    "can't save",
+    "low storage"
+  ],
+  "possible_causes": [
+    "Downloads/Desktop clutter",
+    "Temporary files",
+    "Large videos",
+    "Recycle Bin"
+  ],
+  "diagnostic_checks": [
+    "get_disk_information"
+  ],
+  "expected_results": {
+    "space": "More than 10% free"
+  },
+  "risk_level": "HIGH_RISK_MODIFICATION",
+  "required_permission": true,
+  "remediation": null,
+  "verification": ["get_disk_information"],
+  "rollback": "Deleted user files cannot be guaranteed recoverable.",
+  "plain_language": {
+    "problem": "This computer is running out of room to store files, which also makes it feel slow.",
+    "solution": "I will not automatically delete your documents, photos, or downloads. I can tell you which drive is full so you can choose what to move."
+  }
+}

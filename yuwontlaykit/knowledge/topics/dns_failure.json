@@ -1,0 +1,40 @@
+{
+  "id": "dns_failure",
+  "domain": "network",
+  "problem": "DNS Problem",
+  "technical_name": "DNS resolution failed while IP connectivity works",
+  "symptoms": [
+    "websites won't load",
+    "can't find site",
+    "dns",
+    "names not resolving"
+  ],
+  "possible_causes": [
+    "Bad DNS servers",
+    "DNS Client issue",
+    "Stale DNS cache",
+    "Router DNS failure"
+  ],
+  "diagnostic_checks": [
+    "get_network_information",
+    "test_network_connectivity",
+    "test_dns",
+    "test_internet"
+  ],
+  "expected_results": {
+    "resolved": "test_dns extras.resolved true"
+  },
+  "risk_level": "LOW_RISK_MODIFICATION",
+  "required_permission": true,
+  "remediation": {
+    "tool": "flush_dns",
+    "label": "refresh the list of website addresses Windows has remembered",
+    "user_impact": "This clears a cache of website names. It does not delete files or change your Wi-Fi password."
+  },
+  "verification": ["test_dns", "test_internet"],
+  "rollback": null,
+  "plain_language": {
+    "problem": "Your computer is connected to the network, but it cannot translate website names into the addresses it needs to reach them.",
+    "solution": "I can refresh that name list. If it still fails, the router or internet provider may be the next place to look."
+  }
+}

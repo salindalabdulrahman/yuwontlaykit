@@ -1,0 +1,35 @@
+{
+  "id": "printer_not_found",
+  "domain": "printer",
+  "problem": "Printer Not Found",
+  "technical_name": "No printers installed / printer not enumerated",
+  "symptoms": [
+    "computer can't find the printer",
+    "no printers listed",
+    "printer disappeared"
+  ],
+  "possible_causes": [
+    "Printer never installed",
+    "USB not detected",
+    "Network printer IP changed",
+    "Driver missing",
+    "Printer powered off"
+  ],
+  "diagnostic_checks": [
+    "get_printers",
+    "get_usb_devices",
+    "get_printer_driver"
+  ],
+  "expected_results": {
+    "found": "At least one non-virtual printer listed"
+  },
+  "risk_level": "READ_ONLY",
+  "required_permission": false,
+  "remediation": null,
+  "verification": ["get_printers"],
+  "rollback": null,
+  "plain_language": {
+    "problem": "This computer does not currently have a usable printer set up, or Windows cannot see it.",
+    "solution": "I cannot physically walk over to the printer. Please check that it is powered on and connected, then tell me and I will look again."
+  }
+}

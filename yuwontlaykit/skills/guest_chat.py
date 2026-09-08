@@ -53,14 +53,12 @@ COMPLIMENT_HINTS = (
     "impressive",
 )
 
-# Real-world / tech help asks guests tend to throw at an assistant
+# Real-world / tech help asks with a named problem (not vague "help me")
 SUPPORT_HINTS = (
     "fix my",
     "fix the",
     "help me fix",
     "help me with",
-    "can you help me",
-    "could you help me",
     "my printer",
     "my computer",
     "my wifi",
@@ -69,6 +67,23 @@ SUPPORT_HINTS = (
     "not working",
     "how do i install",
     "troubleshoot",
+)
+
+VAGUE_HELP_HINTS = (
+    "can you help me",
+    "could you help me",
+    "can you help",
+    "i need help",
+)
+
+SUPPORT_REPLY = (
+    "Got it — tell me what's wrong and I'll check it. "
+    "Printer, Wi-Fi, a slow computer… whatever it is."
+)
+
+VAGUE_HELP_REPLY = (
+    "I can try. Tell me what's wrong — "
+    "or say Nikko sent you if that's how you found me."
 )
 
 LAUGH_REPLIES = (
@@ -123,18 +138,19 @@ COMPLIMENT_WITH_REFERRAL_REPLY = (
     "I'm Yuwontlaykit (he calls me Yuwon). What do you need?"
 )
 
-SUPPORT_REPLY = (
-    "Printer trouble, huh? Okay — I can peek inside your machine "
-    "and examine the printer side of things so we know what help you need.\n"
-    "Should I run a quiet check now? (yes / no)"
-)
-
 
 def arms_machine_scan(text: str) -> bool:
-    """True when this turn's reply would be the support / scan offer."""
+    """Only arm the quiet scan when the guest named a concrete tech problem."""
     if matches_compliment(text) or matches_referral(text) or matches_laugh(text):
         return False
-    return matches_support_ask(text)
+    t = text.lower()
+    if any(v in t for v in VAGUE_HELP_HINTS) and not any(
+        hint in t for hint in ("printer", "computer", "wifi", "laptop", "broken", "not working")
+    ):
+        return False
+    return matches_support_ask(text) and any(
+        hint in t for hint in ("printer", "computer", "wifi", "laptop", "broken", "not working", "fix my", "fix the")
+    )
 
 GUEST_FALLBACK = (
     "Hmm. I don't really know you yet. "
@@ -168,7 +184,24 @@ def matches_compliment(text: str) -> bool:
 
 
 def matches_support_ask(text: str) -> bool:
-    return any(hint in text for hint in SUPPORT_HINTS)
+    t = text.lower()
+    if any(v in t for v in VAGUE_HELP_HINTS) and not any(
+        hint in t
+        for hint in (
+            "printer",
+            "computer",
+            "wifi",
+            "laptop",
+            "broken",
+            "not working",
+            "fix my",
+            "fix the",
+            "help me with",
+            "help me fix",
+        )
+    ):
+        return True  # vague help — still a guest_chat match, but not a scan arm
+    return any(hint in t for hint in SUPPORT_HINTS)
 
 
 def matches(text: str, mode: str) -> bool:
@@ -202,22 +235,22 @@ def reply(text: str, context: dict | None = None) -> str:
         return REFERRAL_REPLY
     if matches_laugh(text):
         return _laugh_reply(context)
+    t = text.lower()
+    if any(v in t for v in VAGUE_HELP_HINTS) and not any(
+        hint in t for hint in ("printer", "computer", "wifi", "laptop", "broken", "not working")
+    ):
+        return VAGUE_HELP_REPLY
     if matches_support_ask(text):
         return SUPPORT_REPLY
     return GUEST_FALLBACK
 
 
 def fallback(mode: str, user_input: str, context: dict | None = None) -> str:
-    if context and context.get("printer_help_active"):
-        from yuwontlaykit.knowledge.printer_errors import list_symptom_hints
-
+    if context and (context.get("printer_help_active") or context.get("it_support_active")):
         return (
-            "Still on printer duty. What's it doing — "
-            f"{list_symptom_hints()}?"
+            "What do you want next about that — "
+            "which printers are installed, which is online, or which is default?"
         )
     if mode == entry_modes.GUEST:
         return GUEST_FALLBACK
-    return (
-        f"I caught that, but I'm not sure what you mean by '{user_input}'. "
-        "Type 'help' for what I can do."
-    )
+    return "I'm here. Tell me what's going on, or type 'help'."

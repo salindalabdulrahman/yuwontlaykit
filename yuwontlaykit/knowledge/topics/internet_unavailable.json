@@ -1,0 +1,37 @@
+{
+  "id": "internet_unavailable",
+  "domain": "network",
+  "problem": "Internet Unavailable",
+  "technical_name": "Local network up, public internet unreachable",
+  "symptoms": [
+    "internet isn't working",
+    "no internet",
+    "connected but no internet"
+  ],
+  "possible_causes": [
+    "Router has no WAN",
+    "ISP outage",
+    "Gateway down",
+    "Firewall blocking",
+    "DNS failure (related)"
+  ],
+  "diagnostic_checks": [
+    "get_wifi_information",
+    "get_network_information",
+    "test_network_connectivity",
+    "test_dns",
+    "test_internet"
+  ],
+  "expected_results": {
+    "internet": "test_internet state ok"
+  },
+  "risk_level": "READ_ONLY",
+  "required_permission": false,
+  "remediation": null,
+  "verification": ["test_internet"],
+  "rollback": null,
+  "plain_language": {
+    "problem": "Your computer is connected to Wi-Fi or the local network, but the internet beyond your router is unavailable.",
+    "solution": "Restarting the router often helps. I cannot reach the router hardware from here."
+  }
+}

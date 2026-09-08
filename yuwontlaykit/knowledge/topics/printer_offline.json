@@ -1,0 +1,43 @@
+{
+  "id": "printer_offline",
+  "domain": "printer",
+  "problem": "Printer Offline",
+  "technical_name": "Printer offline / WorkOffline / not responding",
+  "symptoms": [
+    "printer installed but unavailable",
+    "offline",
+    "not responding",
+    "cannot print"
+  ],
+  "possible_causes": [
+    "Printer powered off or asleep",
+    "USB or network cable/Wi-Fi down",
+    "Incorrect IP or port",
+    "Windows 'Use Printer Offline' is on",
+    "Print Spooler problem",
+    "Driver problem"
+  ],
+  "diagnostic_checks": [
+    "get_printers",
+    "get_printer_status",
+    "get_printer_port",
+    "check_print_spooler",
+    "get_print_queue"
+  ],
+  "expected_results": {
+    "online": "PrinterStatus Normal or Idle, WorkOffline false"
+  },
+  "risk_level": "LOW_RISK_MODIFICATION",
+  "required_permission": true,
+  "remediation": {
+    "tool": "set_printers_online",
+    "label": "ask Windows to bring the printer back online",
+    "user_impact": "This only clears the 'use printer offline' flag. It will not delete files."
+  },
+  "verification": ["get_printer_status"],
+  "rollback": null,
+  "plain_language": {
+    "problem": "Windows still has the printer on the list, but it thinks the printer is switched off or disconnected.",
+    "solution": "I can ask Windows to treat the printer as online again. If the printer itself is unplugged or off, you'll still need to power it on."
+  }
+}

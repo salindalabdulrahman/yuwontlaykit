@@ -1,0 +1,34 @@
+{
+  "id": "printer_driver",
+  "domain": "printer",
+  "problem": "Driver Problem",
+  "technical_name": "Missing or mismatched printer driver",
+  "symptoms": [
+    "driver error",
+    "failed to print",
+    "0x00000709",
+    "wrong driver"
+  ],
+  "possible_causes": [
+    "Wrong driver after a Windows update",
+    "Generic driver instead of vendor driver",
+    "Corrupted driver"
+  ],
+  "diagnostic_checks": [
+    "get_printer_driver",
+    "get_printers",
+    "get_device_information"
+  ],
+  "expected_results": {
+    "matched": "Printer DriverName exists in Get-PrinterDriver"
+  },
+  "risk_level": "READ_ONLY",
+  "required_permission": false,
+  "remediation": null,
+  "verification": ["get_printer_driver"],
+  "rollback": null,
+  "plain_language": {
+    "problem": "Windows may be using the wrong 'translator' (driver) to talk to the printer.",
+    "solution": "Reinstalling the printer's official driver is the usual fix. I will not download or install software unless you later ask for a guided, permission-based step."
+  }
+}

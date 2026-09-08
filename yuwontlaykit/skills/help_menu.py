@@ -22,7 +22,11 @@ HELP_REPLY = (
     "  - Tell me 'calc [math]' (e.g., calc 45 * 12)\n"
     "  - Say 'remember [something]' to save a temporary note.\n"
     "  - Say 'show memories' to view saved notes.\n"
-    "  - Ask to fix/check a printer — I'll examine, then walk errors with CMD/PowerShell fixes.\n"
+    "  - Just describe a computer problem in plain language — printer, Wi-Fi,\n"
+    "    internet, slow PC, no sound, Bluetooth, storage, an app that won't open.\n"
+    "    I'll inspect what I can, explain it simply, and ask before changing anything.\n"
+    "  - Say 'what can you check' to hear my real capabilities (and limits).\n"
+    "  - Say 'technical details' during a case for the raw findings.\n"
     "  - Type 'exit' or 'quit' to close."
 )
 

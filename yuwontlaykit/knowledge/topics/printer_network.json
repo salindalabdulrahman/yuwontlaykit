@@ -1,0 +1,35 @@
+{
+  "id": "printer_network",
+  "domain": "printer",
+  "problem": "Network Printer Problem",
+  "technical_name": "Network / TCP/IP / WSD printer unreachable",
+  "symptoms": [
+    "network printer offline",
+    "can't find printer on wifi",
+    "printer IP changed"
+  ],
+  "possible_causes": [
+    "Printer IP changed",
+    "Printer and PC on different Wi-Fi",
+    "Port still points at old address",
+    "Firewall blocking",
+    "Printer powered off"
+  ],
+  "diagnostic_checks": [
+    "get_printer_port",
+    "get_network_information",
+    "test_network_connectivity"
+  ],
+  "expected_results": {
+    "reachable": "Printer host address replies to ping"
+  },
+  "risk_level": "READ_ONLY",
+  "required_permission": false,
+  "remediation": null,
+  "verification": ["test_network_connectivity"],
+  "rollback": null,
+  "plain_language": {
+    "problem": "The printer is set up as a network printer, but this computer cannot reach it at the address Windows is using.",
+    "solution": "The printer may have a new address, be on a different Wi-Fi, or be turned off. I cannot see the physical printer."
+  }
+}

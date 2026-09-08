@@ -154,10 +154,10 @@ def _pending_error(context: dict) -> PrinterError | None:
     return None
 
 
-def handle(text: str, context: dict) -> str:
+def handle(text: str, context: dict, engine=None) -> str:
     t = _norm(text)
 
-    # Consent to run the auto-fix for the last matched error
+    # Consent to run the auto-fix for the last matched error (legacy path)
     if is_awaiting_fix(context):
         err = _pending_error(context)
         context[AWAITING_FIX_KEY] = False
@@ -177,6 +177,13 @@ def handle(text: str, context: dict) -> str:
         # Still waiting for a clear answer
         context[AWAITING_FIX_KEY] = True
         return "Say yes and I'll run the fix, or no to skip."
+
+    # Preferred path: inspect the machine, then speak from evidence
+    if engine is not None:
+        from yuwontlaykit.skills import it_support
+
+        problem = text if it_support.classify_domain(text) else f"printer problem: {text}"
+        return it_support.handle(problem, context, engine)
 
     err = find_error(text)
     if not err:

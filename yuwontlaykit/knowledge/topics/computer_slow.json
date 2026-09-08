@@ -1,0 +1,37 @@
+{
+  "id": "computer_slow",
+  "domain": "computer",
+  "problem": "Computer Is Slow",
+  "technical_name": "Performance: CPU, memory, disk, startup, uptime",
+  "symptoms": [
+    "computer is slow",
+    "very slow",
+    "lag",
+    "freezing"
+  ],
+  "possible_causes": [
+    "Disk almost full",
+    "Memory full",
+    "A program using too much CPU",
+    "Too many startup apps",
+    "Very long uptime with leaked resources"
+  ],
+  "diagnostic_checks": [
+    "get_system_information",
+    "get_running_processes",
+    "get_disk_information",
+    "get_startup_applications"
+  ],
+  "expected_results": {
+    "healthy": "CPU/RAM/disk not saturated"
+  },
+  "risk_level": "READ_ONLY",
+  "required_permission": false,
+  "remediation": null,
+  "verification": ["get_running_processes", "get_disk_information"],
+  "rollback": null,
+  "plain_language": {
+    "problem": "Something on this computer is using most of its energy — I will say which, based on what I measured.",
+    "solution": "I will not restart the computer or delete files unless you ask. First we use the evidence."
+  }
+}
