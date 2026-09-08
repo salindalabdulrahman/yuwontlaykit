@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from yuwontlaykit.tools.base import RiskLevel
 from yuwontlaykit.tools.registry import ToolRegistry, ToolSpec
-from yuwontlaykit.tools import devices, disk, events, network, printers, remediate, security, services, system
+from yuwontlaykit.tools import applications, devices, disk, events, files, network, power, printers, remediate, security, services, system
 
 
 def build_registry() -> ToolRegistry:
@@ -34,6 +34,18 @@ def build_registry() -> ToolRegistry:
         ToolSpec("get_disk_information", RiskLevel.READ_ONLY, disk.get_disk_information, "Disk space"),
         ToolSpec("get_event_logs", RiskLevel.READ_ONLY, events.get_event_logs, "Recent error events"),
         ToolSpec("get_security_overview", RiskLevel.READ_ONLY, security.get_security_overview, "Defender / firewall"),
+        ToolSpec("open_application", RiskLevel.LOW_RISK_MODIFICATION, applications.open_application, "Open an allowlisted installed application"),
+        ToolSpec("close_application", RiskLevel.LOW_RISK_MODIFICATION, applications.close_application, "Close an allowlisted application"),
+        ToolSpec("application_running", RiskLevel.READ_ONLY, applications.application_running, "Check whether an application is running"),
+        ToolSpec("list_running_applications", RiskLevel.READ_ONLY, applications.list_running_applications, "List applications with open windows"),
+        ToolSpec("search_user_files", RiskLevel.READ_ONLY, files.search_user_files, "Search common user folders"),
+        ToolSpec("open_path", RiskLevel.LOW_RISK_MODIFICATION, files.open_path, "Open a file or folder with the default app"),
+        ToolSpec("resolve_known_folder", RiskLevel.READ_ONLY, files.resolve_known_folder, "Locate Desktop/Documents/Downloads"),
+        ToolSpec("shutdown_computer", RiskLevel.HIGH_RISK_MODIFICATION, power.shutdown_computer, "Shut down the PC"),
+        ToolSpec("restart_computer", RiskLevel.HIGH_RISK_MODIFICATION, power.restart_computer, "Restart the PC"),
+        ToolSpec("lock_computer", RiskLevel.LOW_RISK_MODIFICATION, power.lock_computer, "Lock the PC"),
+        ToolSpec("sleep_computer", RiskLevel.HIGH_RISK_MODIFICATION, power.sleep_computer, "Sleep the PC"),
+        ToolSpec("logout_user", RiskLevel.HIGH_RISK_MODIFICATION, power.logout_user, "Sign out the current user"),
         ToolSpec("restart_print_spooler", RiskLevel.LOW_RISK_MODIFICATION, remediate.restart_print_spooler, "Restart Print Spooler"),
         ToolSpec("clear_print_queue", RiskLevel.LOW_RISK_MODIFICATION, remediate.clear_print_queue, "Clear print jobs"),
         ToolSpec("set_printers_online", RiskLevel.LOW_RISK_MODIFICATION, remediate.set_printers_online, "Clear Work Offline"),

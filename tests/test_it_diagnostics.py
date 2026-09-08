@@ -261,6 +261,86 @@ class NetworkReasoningTests(unittest.TestCase):
         analysis2 = analyze_case(case2)
         self.assertEqual(analysis2.topic_id, "internet_unavailable")
 
+    def test_connection_summary_distinguishes_wifi_ethernet_and_no_internet(self):
+        from yuwontlaykit.diagnostics.summary import (
+            format_network_connection_summary,
+            is_network_connection_check,
+        )
+
+        self.assertTrue(
+            is_network_connection_check("is this pc connected to the wifi?")
+        )
+
+        ethernet = TroubleshootingCase(1, "is this pc connected to wifi", "wifi")
+        ethernet.diagnostics = [
+            _result(
+                "get_wifi_information",
+                "not connected",
+                data={"ssid": None, "adapters": [{"Name": "Wi-Fi"}]},
+                extras={"connected": False, "ssid": None},
+            ),
+            _result(
+                "get_network_information",
+                "Ethernet up",
+                data={
+                    "adapters": [
+                        {
+                            "Name": "Ethernet",
+                            "Status": "Up",
+                            "InterfaceDescription": "Realtek PCIe GbE",
+                        }
+                    ],
+                    "ip": [
+                        {
+                            "InterfaceAlias": "Ethernet",
+                            "IPv4": "172.16.86.37",
+                            "Gateway": "172.16.86.1",
+                        }
+                    ],
+                },
+            ),
+            _result("test_internet", "Internet works", extras={"state": "ok"}),
+        ]
+        text = format_network_connection_summary(ethernet)
+        self.assertIn("not currently using Wi-Fi", text)
+        self.assertIn("🔌 **Ethernet:** 🟢 Connected", text)
+        self.assertIn("🌐 **Internet:** 🟢 Connected", text)
+
+        wifi_without_internet = TroubleshootingCase(
+            2, "is this pc connected to wifi", "wifi"
+        )
+        wifi_without_internet.diagnostics = [
+            _result(
+                "get_wifi_information",
+                "Wi-Fi network: OfficeNet",
+                data={"ssid": "OfficeNet", "interface_name": "Wi-Fi"},
+                extras={"connected": True, "ssid": "OfficeNet"},
+            ),
+            _result(
+                "get_network_information",
+                "Wi-Fi up",
+                data={
+                    "adapters": [{"Name": "Wi-Fi", "Status": "Up"}],
+                    "ip": [
+                        {
+                            "InterfaceAlias": "Wi-Fi",
+                            "IPv4": "192.168.1.105",
+                            "Gateway": "192.168.1.1",
+                        }
+                    ],
+                },
+            ),
+            _result(
+                "test_internet",
+                "Internet not reachable",
+                extras={"state": "internet_failed"},
+            ),
+        ]
+        text = format_network_connection_summary(wifi_without_internet)
+        self.assertIn("is connected to Wi-Fi", text)
+        self.assertIn("🏠 **Local network:** 🟢 Connected", text)
+        self.assertIn("🌐 **Internet:** 🔴 Not reachable", text)
+
 
 class ComputerReasoningTests(unittest.TestCase):
     def test_low_disk_not_just_restart(self):
@@ -281,6 +361,9 @@ class ComputerReasoningTests(unittest.TestCase):
         )
 
         self.assertTrue(is_general_pc_check("check my PC"))
+        self.assertTrue(is_general_pc_check("is my pc working well"))
+        self.assertTrue(is_general_pc_check("does my computer work properly"))
+        self.assertTrue(is_general_pc_check("how is my laptop doing"))
         self.assertFalse(is_general_pc_check("my computer is frozen"))
         case = TroubleshootingCase(1, "check my PC", "computer")
         case.diagnostics = [
@@ -468,6 +551,179 @@ class IntentTests(unittest.TestCase):
         self.assertIsNone(
             clarification_suggestion("display available apps in this pc")
         )
+
+
+class TurnResolutionTests(unittest.TestCase):
+    def test_clear_new_intents_override_printer_context(self):
+        from yuwontlaykit.engine.intent_resolution import (
+            TurnRelation,
+            resolve_turn,
+        )
+
+        context = create_session_context()
+        context["it_support_active"] = True
+        context["active_domain"] = "printer"
+        engine = DiagnosticEngine(registry=ToolRegistry())
+        engine.start_case("printers", "printer", intent="inventory")
+
+        expected = {
+            "open vscode": "open_application",
+            "what is my IP?": "get_ip_address",
+            "check my computer": "computer_diagnostic",
+            "show my printers": "list_printers",
+        }
+        for phrase, intent in expected.items():
+            decision = resolve_turn(phrase, context, engine)
+            self.assertEqual(decision.relation, TurnRelation.NEW_INTENT, phrase)
+            self.assertEqual(decision.intent, intent, phrase)
+
+    def test_only_true_followups_reuse_printer_context(self):
+        from yuwontlaykit.engine.intent_resolution import (
+            TurnRelation,
+            resolve_turn,
+        )
+
+        context = create_session_context()
+        context["it_support_active"] = True
+        context["active_domain"] = "printer"
+        engine = DiagnosticEngine(registry=ToolRegistry())
+        engine.start_case("printers", "printer", intent="inventory")
+
+        for phrase in ("show only online", "what about Unit 1?"):
+            decision = resolve_turn(phrase, context, engine)
+            self.assertEqual(
+                decision.relation,
+                TurnRelation.CONTEXT_CONTINUATION,
+                phrase,
+            )
+
+    def test_new_intent_clears_stale_pending_state(self):
+        from yuwontlaykit.engine.intent_resolution import (
+            apply_intent_transition,
+            resolve_turn,
+        )
+
+        context = create_session_context()
+        context.update(
+            {
+                "it_support_active": True,
+                "printer_help_active": True,
+                "awaiting_remove_printer": True,
+                "pending_remove_printer": "Old Printer",
+                "awaiting_clarification": True,
+                "pending_clarification": "printer_inventory",
+            }
+        )
+        engine = DiagnosticEngine(registry=ToolRegistry())
+        case = engine.start_case("printers", "printer")
+        case.awaiting = "offer_diagnose_offline"
+
+        decision = resolve_turn("open vscode", context, engine)
+        apply_intent_transition(decision, context, engine)
+
+        self.assertFalse(context["it_support_active"])
+        self.assertFalse(context["printer_help_active"])
+        self.assertFalse(context["awaiting_remove_printer"])
+        self.assertIsNone(context["pending_remove_printer"])
+        self.assertFalse(context["awaiting_clarification"])
+        self.assertEqual(context["active_intent"], "open_application")
+        self.assertIsNone(case.awaiting)
+
+
+class ApplicationLaunchTests(unittest.TestCase):
+    def test_vscode_launch_variations(self):
+        from yuwontlaykit.skills.application_launch import resolve_application
+
+        for phrase in (
+            "open vscode",
+            "open VS Code",
+            "launch vscode",
+            "start vscode",
+            "run vscode",
+            "open visual studio code",
+            "can you open vscode for me?",
+            "start Visual Studio Code",
+        ):
+            self.assertEqual(resolve_application(phrase), "vscode", phrase)
+        self.assertIsNone(resolve_application("vscode won't open"))
+        self.assertIsNone(resolve_application("open printer settings"))
+
+    @patch("yuwontlaykit.tools.applications.windows_tools_available", return_value=True)
+    @patch("yuwontlaykit.tools.applications.powershell_json")
+    def test_launch_success_requires_verified_process(
+        self, mock_powershell, _mock_windows
+    ):
+        from yuwontlaykit.tools.applications import open_application
+
+        mock_powershell.return_value = _result(
+            "open_application",
+            "collected",
+            data={"Installed": True, "Started": False, "Error": None},
+            risk=RiskLevel.LOW_RISK_MODIFICATION,
+        )
+        failed_result = open_application("vscode")
+        self.assertFalse(failed_result.success)
+        self.assertTrue(failed_result.extras["installed"])
+        self.assertFalse(failed_result.extras["started"])
+        self.assertIn("could not be started", failed_result.summary)
+
+        mock_powershell.return_value = _result(
+            "open_application",
+            "collected",
+            data={"Installed": True, "Started": True, "ProcessIds": [123]},
+            risk=RiskLevel.LOW_RISK_MODIFICATION,
+        )
+        success = open_application("vscode")
+        self.assertTrue(success.success)
+        self.assertTrue(success.extras["started"])
+        self.assertIn("verified", success.summary)
+
+    def test_open_vscode_switches_away_from_printer_context(self):
+        from yuwontlaykit.engine.ai_engine import AIEngine
+        from yuwontlaykit.knowledge import entry_modes
+
+        launched = []
+
+        def fake_run(name: str, *, confirmed: bool = False, **kwargs):
+            launched.append((name, confirmed, kwargs))
+            return _result(
+                "open_application",
+                "verified",
+                extras={"installed": True, "started": True},
+                risk=RiskLevel.LOW_RISK_MODIFICATION,
+            )
+
+        replies = []
+        with patch(
+            "yuwontlaykit.skills.application_launch.run_tool",
+            side_effect=fake_run,
+        ), patch(
+            "yuwontlaykit.skills.application_launch.console.print_assistant",
+            side_effect=lambda message: replies.append(message),
+        ), patch(
+            "yuwontlaykit.skills.application_launch.console.print_status",
+        ), patch(
+            "yuwontlaykit.engine.ai_engine.console.print_assistant",
+            side_effect=lambda message: replies.append(message),
+        ):
+            ai = AIEngine(mode=entry_modes.NIKKO_LIGHT)
+            ai.context["it_support_active"] = True
+            ai.context["printer_help_active"] = True
+            case = ai.diagnostics.start_case(
+                "show my printers", "printer", intent="inventory"
+            )
+            case.awaiting = "offer_diagnose_offline"
+            ai.chat("open vscode")
+
+        self.assertEqual(launched[0][0], "open_application")
+        self.assertTrue(launched[0][1])
+        self.assertEqual(launched[0][2]["application"], "vscode")
+        self.assertIn("Sure — I'll open Visual Studio Code for you.", replies)
+        self.assertEqual(replies[-1], "Visual Studio Code is open. 🟢")
+        self.assertFalse(ai.context["it_support_active"])
+        self.assertFalse(ai.context["printer_help_active"])
+        self.assertEqual(ai.context["active_intent"], "open_application")
+        self.assertNotIn("printers", replies[-1].lower())
 
 
 class PrinterInventoryTests(unittest.TestCase):
@@ -746,6 +1002,47 @@ class PersonalityRegressionTests(unittest.TestCase):
             smalltalk.reply("okay", entry_modes.NIKKO_LIGHT),
             "Okay. What else do you need?",
         )
+        self.assertTrue(smalltalk.matches("wow"))
+        self.assertTrue(smalltalk.matches("wow!"))
+        wow = smalltalk.reply("wow", entry_modes.NIKKO_LIGHT, context={})
+        self.assertTrue(wow)
+        self.assertNotIn("didn't catch", wow.lower())
+
+    def test_clear_screen_command(self):
+        from yuwontlaykit.cli import console
+
+        self.assertTrue(console.is_clear_screen("clear"))
+        self.assertTrue(console.is_clear_screen("cls"))
+        self.assertTrue(console.is_clear_screen("clear screen"))
+        self.assertFalse(console.is_clear_screen("clear the print queue"))
+
+    def test_who_is_nikko_variants(self):
+        from yuwontlaykit.people.nikko import profile as nikko_profile
+
+        for phrase in (
+            "who is nikko",
+            "who's nikko?",
+            "whos nikko?",
+            "tell me about nikko",
+        ):
+            self.assertTrue(nikko_profile.matches_query(phrase), phrase)
+            self.assertIn("Nikko", nikko_profile.format_bio())
+
+    def test_who_is_bedis(self):
+        from yuwontlaykit.people.nikko import profile as nikko_profile
+
+        for phrase in (
+            "then who is bedis?",
+            "who's bedis?",
+            "whos bedis",
+            "who is bedis",
+        ):
+            self.assertTrue(nikko_profile.matches_bedis_query(phrase), phrase)
+            self.assertFalse(nikko_profile.matches_query(phrase), phrase)
+        reply = nikko_profile.format_bedis_reply()
+        self.assertIn("Nikko", reply)
+        self.assertIn("middle name", reply.lower())
+        self.assertFalse(nikko_profile.matches_bedis_query("who is nikko"))
 
     def test_vague_help_does_not_arm_printer_scan(self):
         self.assertFalse(guest_chat.arms_machine_scan("can you help me?"))
@@ -913,22 +1210,128 @@ class PersonalityRegressionTests(unittest.TestCase):
             self.assertIn("172.16.86.37", captured[-1])
             self.assertIn("ICO-NIKKO", captured[-1])
 
-    def test_printer_problem_asks_consent_first(self):
+    def test_printer_problem_runs_read_only_check_immediately(self):
         from yuwontlaykit.knowledge import entry_modes
         from yuwontlaykit.engine.ai_engine import AIEngine
-        from unittest.mock import patch
+
+        printer_rows = [
+            {
+                "Name": "EPSON L3110 Series",
+                "PrinterStatus": "Normal",
+                "PortName": "USB001",
+                "WorkOffline": False,
+            }
+        ]
+
+        def fake_run(name: str, *, confirmed: bool = False, **kwargs):
+            if name in {"get_printers", "get_printer_status"}:
+                return _result(name, "1 printer", data=printer_rows)
+            if name == "get_default_printer":
+                return _result(name, "No default", data=None)
+            if name == "get_printer_port":
+                return _result(name, "1 port", data={"ports": [], "printers": []})
+            if name == "get_printer_driver":
+                return _result(name, "1 driver", data={"drivers": [], "printers": []})
+            if name == "get_print_queue":
+                return _result(
+                    name,
+                    "0 queued jobs",
+                    extras={"job_count": 0, "stuck_count": 0},
+                )
+            if name == "check_print_spooler":
+                return _result(name, "Running", extras={"running": True})
+            return _result(name, "unused")
 
         captured = []
+        statuses = []
         with patch(
             "yuwontlaykit.engine.ai_engine.console.print_assistant",
             side_effect=lambda m: captured.append(m),
+        ), patch(
+            "yuwontlaykit.skills.it_support.console.print_status",
+            side_effect=lambda message: statuses.append(message),
         ):
             ai = AIEngine(mode=entry_modes.NIKKO_LIGHT)
+            ai.diagnostics._run = fake_run
             ai.chat("my printer isn't working")
-        self.assertTrue(ai.context.get("awaiting_it_diagnostic"))
-        self.assertIn("quick diagnostic", captured[-1].lower())
-        self.assertIn("yes / no", captured[-1].lower())
-        self.assertNotIn("Here's what I found", captured[-1])
+        self.assertFalse(ai.context.get("awaiting_it_diagnostic"))
+        self.assertIn("Here's what I found", captured[-1])
+        self.assertNotIn("quick diagnostic", captured[-1].lower())
+        self.assertNotIn("yes / no", captured[-1].lower())
+        self.assertTrue(
+            any("i'll check it for you" in status.lower() for status in statuses)
+        )
+
+    def test_wifi_question_runs_read_only_check_immediately(self):
+        from yuwontlaykit.engine.ai_engine import AIEngine
+        from yuwontlaykit.knowledge import entry_modes
+
+        results = {
+            "get_wifi_information": _result(
+                "get_wifi_information",
+                "Wi-Fi network: OfficeNet",
+                data={
+                    "ssid": "OfficeNet",
+                    "interface_name": "Wi-Fi",
+                    "signal": "92%",
+                    "link_speed": "866 Mbps",
+                },
+                extras={
+                    "connected": True,
+                    "ssid": "OfficeNet",
+                    "signal": "92%",
+                    "link_speed": "866 Mbps",
+                },
+            ),
+            "get_network_information": _result(
+                "get_network_information",
+                "Wi-Fi is up",
+                data={
+                    "adapters": [{"Name": "Wi-Fi", "Status": "Up"}],
+                    "ip": [
+                        {
+                            "InterfaceAlias": "Wi-Fi",
+                            "IPv4": "192.168.1.105",
+                            "Gateway": "192.168.1.1",
+                        }
+                    ],
+                },
+            ),
+            "get_windows_services": _result(
+                "get_windows_services",
+                "Services checked",
+            ),
+            "test_internet": _result(
+                "test_internet",
+                "Internet name lookup and public address succeeded.",
+                extras={"state": "ok"},
+            ),
+        }
+        captured = []
+        statuses = []
+        with patch(
+            "yuwontlaykit.engine.ai_engine.console.print_assistant",
+            side_effect=lambda message: captured.append(message),
+        ), patch(
+            "yuwontlaykit.skills.it_support.console.print_status",
+            side_effect=lambda message: statuses.append(message),
+        ):
+            ai = AIEngine(mode=entry_modes.NIKKO_LIGHT)
+            ai.diagnostics._run = lambda name, **kwargs: results[name]
+            ai.chat("is this pc connected to the wifi?")
+
+        self.assertIn("Yes — I checked your network connection.", captured[-1])
+        self.assertIn("📶 **Wi-Fi:** 🟢 Connected", captured[-1])
+        self.assertIn("🌐 **Internet:** 🟢 Connected", captured[-1])
+        self.assertIn("📍 **Local IP:** 192.168.1.105", captured[-1])
+        self.assertIn("🚪 **Gateway:** 192.168.1.1", captured[-1])
+        self.assertIn("working internet access", captured[-1])
+        self.assertNotIn("quick diagnostic", captured[-1].lower())
+        self.assertNotIn("yes / no", captured[-1].lower())
+        self.assertFalse(ai.context.get("awaiting_it_diagnostic"))
+        self.assertTrue(
+            any("i'll check it for you" in status.lower() for status in statuses)
+        )
 
     def test_natural_printer_list_request_answers_immediately(self):
         from yuwontlaykit.engine.ai_engine import AIEngine
@@ -972,6 +1375,74 @@ class PersonalityRegressionTests(unittest.TestCase):
         self.assertIn("EPSON L3110 Series", captured[-1])
         self.assertNotIn("quick diagnostic", captured[-1].lower())
         self.assertFalse(ai.context.get("awaiting_it_diagnostic"))
+
+    def test_pc_working_well_question_runs_read_only_check_immediately(self):
+        from yuwontlaykit.engine.ai_engine import AIEngine
+        from yuwontlaykit.knowledge import entry_modes
+
+        results = {
+            "get_system_information": _result(
+                "get_system_information",
+                "Windows 11",
+                data={
+                    "CPU": {"LoadPercentage": 20},
+                    "OS": {
+                        "TotalVisibleMemorySize": 16_000_000,
+                        "FreePhysicalMemory": 8_000_000,
+                    },
+                },
+            ),
+            "get_disk_information": _result(
+                "get_disk_information",
+                "C: 200 GB free",
+                extras={"low_space": []},
+            ),
+            "get_running_processes": _result(
+                "get_running_processes",
+                "Top processes: app1, app2",
+            ),
+            "get_startup_applications": _result(
+                "get_startup_applications",
+                "4 startup items",
+            ),
+            "get_network_information": _result(
+                "get_network_information",
+                "Ethernet is up",
+            ),
+            "test_internet": _result(
+                "test_internet",
+                "Internet connectivity succeeded.",
+                extras={"state": "ok"},
+            ),
+            "get_printers": _result(
+                "get_printers",
+                "1 printer",
+                data=[{"Name": "EPSON"}],
+            ),
+        }
+
+        captured = []
+        statuses = []
+        with patch(
+            "yuwontlaykit.engine.ai_engine.console.print_assistant",
+            side_effect=lambda message: captured.append(message),
+        ), patch(
+            "yuwontlaykit.skills.it_support.console.print_status",
+            side_effect=lambda message: statuses.append(message),
+        ):
+            ai = AIEngine(mode=entry_modes.NIKKO_LIGHT)
+            ai.diagnostics._run = lambda name, **kwargs: results[name]
+            ai.chat("is my pc working well")
+
+        self.assertIn("I finished checking your PC, Nikko.", captured[-1])
+        self.assertIn("working normally", captured[-1])
+        self.assertTrue(
+            any("i'll check it for you" in status.lower() for status in statuses)
+        )
+        self.assertNotIn("yes / no", captured[-1].lower())
+        self.assertFalse(ai.context.get("awaiting_it_diagnostic"))
+        self.assertNotIn("Case #", captured[-1])
+        self.assertNotIn("Computer snapshot", captured[-1])
 
     def test_confusing_inventory_request_asks_did_you_mean(self):
         from yuwontlaykit.engine.ai_engine import AIEngine
@@ -1102,6 +1573,15 @@ class ServiceAndSystemToolShapeTests(unittest.TestCase):
             "get_disk_information",
             "get_running_processes",
             "get_event_logs",
+            "open_application",
+            "close_application",
+            "application_running",
+            "list_running_applications",
+            "search_user_files",
+            "open_path",
+            "shutdown_computer",
+            "restart_computer",
+            "lock_computer",
         }
         self.assertTrue(required.issubset(names), msg=sorted(required - names))
 

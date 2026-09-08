@@ -98,6 +98,9 @@ try {
 
     ssid = None
     state = None
+    signal = None
+    receive_rate = None
+    transmit_rate = None
     code, out, err = run_powershell("netsh wlan show interfaces", timeout=15.0)
     netsh = out or err
     if code == 0 and netsh:
@@ -108,12 +111,33 @@ try {
                 ssid = stripped.split(":", 1)[-1].strip() or ssid
             if lower.startswith("state"):
                 state = stripped.split(":", 1)[-1].strip() or state
+            if lower.startswith("signal"):
+                signal = stripped.split(":", 1)[-1].strip() or signal
+            if lower.startswith("receive rate"):
+                receive_rate = stripped.split(":", 1)[-1].strip() or receive_rate
+            if lower.startswith("transmit rate"):
+                transmit_rate = stripped.split(":", 1)[-1].strip() or transmit_rate
+
+    link_speed = None
+    interface_name = None
+    for adapter in adapters:
+        if not isinstance(adapter, dict):
+            continue
+        interface_name = str(adapter.get("Name") or "").strip() or interface_name
+        link_speed = str(adapter.get("LinkSpeed") or "").strip() or link_speed
+        if str(adapter.get("Status") or "").lower() == "up":
+            break
 
     result.data = {
         "adapters": adapters,
         "profiles": profiles,
         "ssid": ssid,
         "wlan_state": state,
+        "signal": signal,
+        "receive_rate_mbps": receive_rate,
+        "transmit_rate_mbps": transmit_rate,
+        "link_speed": link_speed,
+        "interface_name": interface_name,
         "netsh": netsh[-2000:] if netsh else "",
     }
     connected = bool(ssid) and (state or "").lower() in ("connected", "")
@@ -125,8 +149,11 @@ try {
         result.summary = "A Wi-Fi adapter is present, but no network name was reported."
     else:
         result.summary = "No Wi-Fi adapter was reported."
-    result.extras["connected"] = bool(ssid) or connected
+    result.extras["connected"] = connected
     result.extras["ssid"] = ssid
+    result.extras["signal"] = signal
+    result.extras["link_speed"] = link_speed
+    result.extras["interface_name"] = interface_name
     return result
 
 

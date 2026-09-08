@@ -29,6 +29,15 @@ def prompt_user() -> str:
     return input(f"{Fore.YELLOW}{_prompt_label} > {Style.RESET_ALL}")
 
 
+def clear_screen() -> None:
+    print("\033[2J\033[H", end="", flush=True)
+
+
+def is_clear_screen(text: str) -> bool:
+    t = (text or "").strip().lower()
+    return t in {"clear", "cls", "clear screen", "clear the screen"}
+
+
 def print_goodbye(name: str | None = None) -> None:
     who = name or _prompt_label
     print(f"{Fore.CYAN}Yuwontlaykit >{Style.RESET_ALL} Goodbye, {who}!")

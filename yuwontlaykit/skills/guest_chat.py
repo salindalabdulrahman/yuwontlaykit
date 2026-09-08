@@ -245,12 +245,22 @@ def reply(text: str, context: dict | None = None) -> str:
     return GUEST_FALLBACK
 
 
-def fallback(mode: str, user_input: str, context: dict | None = None) -> str:
-    if context and (context.get("printer_help_active") or context.get("it_support_active")):
+def fallback(
+    mode: str,
+    user_input: str,
+    context: dict | None = None,
+    *,
+    contextual: bool = False,
+) -> str:
+    if (
+        contextual
+        and context
+        and (context.get("printer_help_active") or context.get("it_support_active"))
+    ):
         return (
             "What do you want next about that — "
             "which printers are installed, which is online, or which is default?"
         )
     if mode == entry_modes.GUEST:
         return GUEST_FALLBACK
-    return "I'm here. Tell me what's going on, or type 'help'."
+    return "Hmm, I didn't catch that. What do you want me to do?"

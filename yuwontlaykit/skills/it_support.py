@@ -32,8 +32,10 @@ from yuwontlaykit.diagnostics.ip_lookup import format_ip_lookup
 from yuwontlaykit.diagnostics.printer_status import refresh_reachability, rows_and_ports_from_case
 from yuwontlaykit.diagnostics.summary import (
     format_computer_health_summary,
+    format_network_connection_summary,
     format_printer_diagnostic_summary,
     is_general_pc_check,
+    is_network_connection_check,
 )
 from yuwontlaykit.knowledge.printer_errors import find_error
 from yuwontlaykit.skills import (
@@ -105,7 +107,7 @@ DIAGNOSTIC_OFFERS = {
         "Want me to run a quick diagnostic? (yes / no)"
     ),
     "computer": (
-        "Got it. I can check the computer for you.\n"
+        "Sure — let me check it for you.\n"
         "I'll look at system load, storage, and busy programs without changing anything.\n\n"
         "Want me to run a quick diagnostic? (yes / no)"
     ),
@@ -134,6 +136,29 @@ def classify_domain(text: str) -> str | None:
 
 def matches(text: str, context: dict, engine: DiagnosticEngine | None = None) -> bool:
     t = normalize(text)
+    command = None
+    try:
+        from yuwontlaykit.engine.computer_commands import parse_computer_command
+
+        command = parse_computer_command(text, context)
+    except Exception:
+        command = None
+    if command and command.category in {
+        "APPLICATION_MANAGEMENT",
+        "FILE_MANAGEMENT",
+        "FOLDER_MANAGEMENT",
+        "SYSTEM_POWER",
+    }:
+        return False
+    try:
+        from yuwontlaykit.engine.computer_commands import suggest_computer_command
+
+        if suggest_computer_command(text, context):
+            return False
+    except Exception:
+        pass
+    if is_general_pc_check(text):
+        return True
     if context.get("awaiting_clarification") and (is_yes(text) or is_no(text)):
         return True
     if clarification_suggestion(text):
@@ -189,8 +214,25 @@ def handle(text: str, context: dict, engine: DiagnosticEngine) -> str:
         context["awaiting_clarification"] = True
         context["pending_clarification"] = suggestion
         return (
-            "I'm not sure what you want displayed.\n"
+            "Wait — I'm a bit confused by that.\n"
             "Did you mean: list the printers installed on this PC? (yes / no)"
+        )
+
+    # A general health check is read-only, so it can run immediately. Keep
+    # consent prompts for actual repairs and changes.
+    if is_general_pc_check(text):
+        context["awaiting_it_diagnostic"] = False
+        context["pending_it_domain"] = None
+        context["pending_it_problem"] = None
+        if engine.active:
+            engine.active.awaiting = None
+        console.print_status("I'll check it for you.")
+        case = engine.start_case(text.strip(), "computer", intent="problem")
+        return _run_problem_case(
+            case,
+            engine,
+            consented=True,
+            user_name=str(context.get("user_name") or "Nikko"),
         )
 
     if is_ip_lookup(text) or (
@@ -318,8 +360,19 @@ def handle(text: str, context: dict, engine: DiagnosticEngine) -> str:
         engine.analyze(case)
         return engine.explain(case)
 
-    # Problem statements ask permission first
-    return _offer_diagnostic(text, domain, context)
+    # Read-only diagnostics run immediately. Consent is still required later
+    # if a proposed action would change the computer.
+    context["awaiting_it_diagnostic"] = False
+    context["pending_it_domain"] = None
+    context["pending_it_problem"] = None
+    console.print_status("I'll check it for you.")
+    case = engine.start_case(text.strip(), domain, intent="problem")
+    return _run_problem_case(
+        case,
+        engine,
+        consented=True,
+        user_name=str(context.get("user_name") or "Nikko"),
+    )
 
 
 def _show_ip_address(
@@ -519,6 +572,11 @@ def _run_problem_case(
 
     if case.domain == "computer" and is_general_pc_check(case.problem):
         return format_computer_health_summary(case, user_name=user_name)
+
+    if case.domain in ("wifi", "network") and is_network_connection_check(
+        case.problem
+    ):
+        return format_network_connection_summary(case)
 
     body = engine.explain(case)
     extra = _physical_printer_tips(case.problem, case.domain, "problem")

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from yuwontlaykit.diagnostics.case import TroubleshootingCase
 from yuwontlaykit.diagnostics.printer_status import (
     classify_printers,
@@ -10,9 +12,214 @@ from yuwontlaykit.diagnostics.printer_status import (
 from yuwontlaykit.tools.runner import as_list
 
 
+def is_network_connection_check(problem: str) -> bool:
+    text = (problem or "").lower()
+    mentions_network = any(
+        word in text for word in ("wifi", "wi-fi", "wireless", "internet", "network")
+    )
+    asks_status = any(
+        phrase in text
+        for phrase in (
+            "connected",
+            "connection status",
+            "internet access",
+            "using wifi",
+            "using wi-fi",
+            "on wifi",
+            "on wi-fi",
+            "am i online",
+            "is it online",
+            "do i have internet",
+            "does this pc have internet",
+            "does my pc have internet",
+        )
+    )
+    return mentions_network and asks_status
+
+
+def format_network_connection_summary(case: TroubleshootingCase) -> str:
+    """Report Wi-Fi, Ethernet, local network, and internet as separate facts."""
+    by_name = case.results_by_name()
+    wifi = by_name.get("get_wifi_information")
+    network = by_name.get("get_network_information")
+    internet = by_name.get("test_internet")
+
+    wifi_data = wifi.data if wifi and isinstance(wifi.data, dict) else {}
+    net_data = network.data if network and isinstance(network.data, dict) else {}
+    wifi_connected = bool(wifi and wifi.extras.get("connected"))
+    ssid = str(
+        (wifi.extras.get("ssid") if wifi else None)
+        or wifi_data.get("ssid")
+        or ""
+    ).strip()
+    signal = str(
+        (wifi.extras.get("signal") if wifi else None)
+        or wifi_data.get("signal")
+        or ""
+    ).strip()
+    link_speed = str(
+        (wifi.extras.get("link_speed") if wifi else None)
+        or wifi_data.get("link_speed")
+        or ""
+    ).strip()
+
+    adapters = [
+        row for row in as_list(net_data.get("adapters")) if isinstance(row, dict)
+    ]
+    ip_rows = [row for row in as_list(net_data.get("ip")) if isinstance(row, dict)]
+    wifi_alias = _wifi_alias(wifi_data, adapters)
+    ethernet_alias = _ethernet_alias(adapters)
+    ethernet_connected = bool(ethernet_alias)
+    internet_state = str(
+        (internet.extras.get("state") if internet else None) or ""
+    ).lower()
+    internet_ok = internet_state == "ok"
+
+    selected_alias = wifi_alias if wifi_connected else ethernet_alias
+    selected_ip = _interface_ip(ip_rows, selected_alias)
+    local_ip = selected_ip.get("ipv4", "")
+    gateway = selected_ip.get("gateway", "")
+    local_connected = bool(wifi_connected or ethernet_connected or local_ip or gateway)
+
+    if wifi_connected and internet_ok:
+        lines = [
+            "Yes — I checked your network connection.",
+            "",
+            "📶 **Wi-Fi:** 🟢 Connected",
+            "🌐 **Internet:** 🟢 Connected",
+            f"💻 **Network interface:** {wifi_alias or 'Wi-Fi'}",
+            f"📍 **Local IP:** {local_ip or 'Not reported'}",
+            f"🚪 **Gateway:** {gateway or 'Not reported'}",
+            "",
+            "Your PC is currently connected to Wi-Fi and has working internet access.",
+            "",
+            "If you want, I can also show you **the Wi-Fi network name (SSID), "
+            "signal strength, connection speed, and IP address**.",
+        ]
+        return "\n".join(lines)
+
+    if not wifi_connected and ethernet_connected and internet_ok:
+        return "\n".join(
+            [
+                "Your PC has internet access, but it is **not currently using Wi-Fi**.",
+                "",
+                "📶 **Wi-Fi:** 🔴 Not connected",
+                "🔌 **Ethernet:** 🟢 Connected",
+                "🌐 **Internet:** 🟢 Connected",
+                "",
+                "So your internet is working through the Ethernet cable, not Wi-Fi.",
+                "",
+                "If you'd like, I can check whether your Wi-Fi adapter is enabled "
+                "and show you the available Wi-Fi networks.",
+            ]
+        )
+
+    if wifi_connected and not internet_ok:
+        return "\n".join(
+            [
+                "Your PC **is connected to Wi-Fi**, but there is a problem reaching the internet.",
+                "",
+                "📶 **Wi-Fi:** 🟢 Connected",
+                f"🏠 **Local network:** {'🟢 Connected' if local_connected else '🟡 Not confirmed'}",
+                "🌐 **Internet:** 🔴 Not reachable",
+                "",
+                "So the Wi-Fi connection itself appears to be working, but the "
+                "network doesn't currently have internet access.",
+                "",
+                "I can investigate the connection further if you'd like.",
+            ]
+        )
+
+    if not wifi_connected and not ethernet_connected:
+        return "\n".join(
+            [
+                "No — I couldn't confirm an active network connection.",
+                "",
+                "📶 **Wi-Fi:** 🔴 Not connected",
+                "🔌 **Ethernet:** 🔴 Not connected",
+                "🌐 **Internet:** 🔴 Not reachable",
+                "",
+                "Your PC does not currently appear to be connected through Wi-Fi "
+                "or Ethernet.",
+            ]
+        )
+
+    # The adapter state is known, but the internet check was unavailable or unclear.
+    interface = wifi_alias if wifi_connected else ethernet_alias
+    return "\n".join(
+        [
+            "I checked the connection, but I couldn't confirm every layer.",
+            "",
+            f"📶 **Wi-Fi:** {'🟢 Connected' if wifi_connected else '🔴 Not connected'}",
+            f"🔌 **Ethernet:** {'🟢 Connected' if ethernet_connected else '🔴 Not connected'}",
+            f"🌐 **Internet:** {'🟡 Not confirmed' if not internet_ok else '🟢 Connected'}",
+            f"💻 **Network interface:** {interface or 'Not reported'}",
+            f"📍 **Local IP:** {local_ip or 'Not reported'}",
+            f"🚪 **Gateway:** {gateway or 'Not reported'}",
+            "",
+            "Tell me if you want me to investigate the uncertain part further.",
+        ]
+    )
+
+
+def _wifi_alias(wifi_data: dict, adapters: list[dict]) -> str:
+    direct = str(wifi_data.get("interface_name") or "").strip()
+    if direct:
+        return direct
+    for row in as_list(wifi_data.get("adapters")) + adapters:
+        if not isinstance(row, dict):
+            continue
+        name = str(row.get("Name") or row.get("InterfaceAlias") or "").strip()
+        desc = str(row.get("InterfaceDescription") or "").lower()
+        if any(token in (name + " " + desc).lower() for token in ("wi-fi", "wifi", "wireless", "wlan", "802.11")):
+            return name or "Wi-Fi"
+    return "Wi-Fi"
+
+
+def _ethernet_alias(adapters: list[dict]) -> str:
+    for row in adapters:
+        name = str(row.get("Name") or "").strip()
+        desc = str(row.get("InterfaceDescription") or "").lower()
+        text = (name + " " + desc).lower()
+        if str(row.get("Status") or "").lower() != "up":
+            continue
+        if any(token in text for token in ("virtual", "vethernet", "hyper-v", "wsl", "vpn")):
+            continue
+        if "ethernet" in text or "gigabit" in text or "gbe" in text:
+            return name or "Ethernet"
+    return ""
+
+
+def _interface_ip(rows: list[dict], alias: str) -> dict[str, str]:
+    fallback: dict[str, str] = {}
+    for row in rows:
+        row_alias = str(row.get("InterfaceAlias") or row.get("Name") or "").strip()
+        ipv4 = _first_usable_ipv4(row.get("IPv4") or row.get("IPAddress"))
+        gateway = str(row.get("Gateway") or "").split(",")[0].strip()
+        candidate = {"ipv4": ipv4, "gateway": gateway}
+        if row_alias.lower() == alias.lower():
+            return candidate
+        if ipv4 and not fallback:
+            fallback = candidate
+    return fallback
+
+
+def _first_usable_ipv4(value) -> str:
+    for part in str(value or "").split(","):
+        address = part.strip()
+        if address.count(".") == 3 and not address.startswith(("127.", "169.254.")):
+            return address
+    return ""
+
+
 def is_general_pc_check(problem: str) -> bool:
     text = (problem or "").lower()
-    return any(
+    if re.search(r"\b(?:shut\s*down|power\s*off|turn\s+off|restart|reboot|lock)\b", text):
+        if re.search(r"\b(?:pc|computer|laptop|machine|system)\b", text) and not any(
+            phrase in text for phrase in ("check", "health", "working well", "doing")
+        ):
+            return False
+    if any(
         phrase in text
         for phrase in (
             "check my computer",
@@ -30,6 +237,23 @@ def is_general_pc_check(problem: str) -> bool:
             "look at my pc",
             "general check",
         )
+    ):
+        return True
+
+    # Natural health questions, not only commands beginning with "check".
+    machine = r"(?:my|the|this)\s+(?:pc|computer|laptop|machine)"
+    health = (
+        r"(?:"
+        r"(?:work|works|working|run|runs|running)\s+(?:well|fine|normally|properly)"
+        r"|healthy|in\s+good\s+(?:condition|shape)"
+        r"|doing\s+(?:well|fine|okay|ok)"
+        r"|okay|ok|fine"
+        r")"
+    )
+    return bool(
+        re.search(rf"\b(?:is|does)\s+{machine}\s+{health}\b", text)
+        or re.search(rf"\bhow\s+is\s+{machine}(?:\s+doing)?\b", text)
+        or re.search(rf"\b{machine}\s+health\b", text)
     )
 
 

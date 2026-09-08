@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import Any
 
-from yuwontlaykit.tools.base import RiskLevel, ToolResult, skipped
+from yuwontlaykit.tools.base import RiskLevel, ToolResult, failed, skipped
+
+_LOG = logging.getLogger("yuwontlaykit")
 
 ToolFn = Callable[..., ToolResult]
 
@@ -31,25 +34,33 @@ class ToolRegistry:
     def names(self) -> list[str]:
         return sorted(self._tools)
 
-    def run(self, name: str, *, confirmed: bool = False, **kwargs: Any) -> ToolResult:
-        spec = self._tools.get(name)
+    def run(self, tool: str, *, confirmed: bool = False, **kwargs: Any) -> ToolResult:
+        spec = self._tools.get(tool)
         if spec is None:
             return skipped(
-                name,
+                tool,
                 RiskLevel.READ_ONLY,
-                f"There is no approved tool named '{name}'.",
+                f"There is no approved tool named '{tool}'.",
             )
         if spec.risk != RiskLevel.READ_ONLY and not confirmed:
             return skipped(
-                name,
+                tool,
                 spec.risk,
                 "I need your permission before I change anything on this computer.",
             )
-        result = spec.fn(**kwargs)
+        try:
+            result = spec.fn(**kwargs)
+        except Exception:
+            _LOG.exception("approved tool %s failed", tool)
+            return failed(
+                tool,
+                spec.risk,
+                "I couldn't complete that action.",
+            )
         # Trust the tool's own name/risk if it returned a ToolResult
         if isinstance(result, ToolResult):
             return result
-        return skipped(name, spec.risk, "Tool returned an unexpected result type.")
+        return skipped(tool, spec.risk, "Tool returned an unexpected result type.")
 
 
 _BUILTIN: ToolRegistry | None = None
@@ -65,5 +76,5 @@ def builtin_registry() -> ToolRegistry:
     return _BUILTIN
 
 
-def run_tool(name: str, *, confirmed: bool = False, **kwargs: Any) -> ToolResult:
-    return builtin_registry().run(name, confirmed=confirmed, **kwargs)
+def run_tool(tool: str, *, confirmed: bool = False, **kwargs: Any) -> ToolResult:
+    return builtin_registry().run(tool, confirmed=confirmed, **kwargs)

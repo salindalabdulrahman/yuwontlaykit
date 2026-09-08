@@ -4,6 +4,7 @@ import re
 
 from yuwontlaykit.knowledge import entry_modes
 from yuwontlaykit.people.nikko.bedis import BedisTease
+from yuwontlaykit.skills.confusion import next_reply
 
 # "heyyy", "heey", "hiii", "yo", plain hey/hi/hello
 GREETING_PATTERN = re.compile(
@@ -137,6 +138,26 @@ def matches_thanks(text: str) -> bool:
     return False
 
 
+REACT_PATTERN = re.compile(
+    r"^\s*(?:wow+|woah+|whoa+|ooh+|oh+|nice|no way|for real|whoa)\s*[!?.]*\s*$",
+    re.IGNORECASE,
+)
+
+REACT_REPLIES_NIKKO = (
+    "Heh. Yeah?",
+    "I know, right?",
+    "Ha. Glad that landed.",
+    "Mhm. What's next?",
+    "Right? What else do you need?",
+    "Yeah — pretty cool. What now?",
+)
+
+REACT_REPLIES_GUEST = (
+    "Heh. Okay… still, who sent you?",
+    "Wow from a stranger. Cute. Who told you about me?",
+    "Okay. Now tell me how you found me.",
+)
+
 ACK_EXACT = {
     "ok",
     "okay",
@@ -148,6 +169,12 @@ ACK_EXACT = {
     "cool",
     "noted",
 }
+
+
+def matches_react(text: str) -> bool:
+    t = text.strip().lower().strip("'\"`")
+    t = re.sub(r"[!?.,]+$", "", t).strip()
+    return bool(REACT_PATTERN.match(t)) or t in {"wow", "woah", "whoa", "nice", "oh"}
 
 
 def matches_ack(text: str) -> bool:
@@ -163,6 +190,7 @@ def matches(text: str) -> bool:
         or matches_help_opener(text)
         or matches_thanks(text)
         or matches_ack(text)
+        or matches_react(text)
     )
 
 
@@ -170,12 +198,17 @@ def reply(
     text: str,
     mode: str = entry_modes.GUEST,
     bedis: BedisTease | None = None,
+    context: dict | None = None,
 ) -> str:
     name = "Nikko"
     if bedis and entry_modes.is_deep_nikko(mode):
         name = bedis.address_name()
     elif mode == entry_modes.GUEST:
         name = "there"
+
+    if matches_react(text):
+        lines = REACT_REPLIES_GUEST if mode == entry_modes.GUEST else REACT_REPLIES_NIKKO
+        return next_reply(context, "smalltalk_react_index", lines, text)
 
     if matches_ok(text):
         if mode == entry_modes.GUEST:

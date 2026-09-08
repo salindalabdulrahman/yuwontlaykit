@@ -25,10 +25,10 @@ class DiagnosticEngine:
         self.history = history or DiagnosticHistory()
         self.active: TroubleshootingCase | None = None
 
-    def _run(self, name: str, *, confirmed: bool = False, **kwargs: Any) -> ToolResult:
+    def _run(self, tool: str, *, confirmed: bool = False, **kwargs: Any) -> ToolResult:
         if self.registry is not None:
-            return self.registry.run(name, confirmed=confirmed, **kwargs)
-        return run_tool(name, confirmed=confirmed, **kwargs)
+            return self.registry.run(tool, confirmed=confirmed, **kwargs)
+        return run_tool(tool, confirmed=confirmed, **kwargs)
 
     def start_case(self, problem: str, domain: str, intent: str = "problem") -> TroubleshootingCase:
         case = TroubleshootingCase(

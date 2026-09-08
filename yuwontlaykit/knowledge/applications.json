@@ -1,0 +1,139 @@
+{
+  "vscode": {
+    "display": "Visual Studio Code",
+    "aliases": ["vscode", "vs code", "visual studio code", "code"],
+    "process_names": ["Code", "code"],
+    "windows_paths": [
+      "%LOCALAPPDATA%\\Programs\\Microsoft VS Code\\Code.exe",
+      "%ProgramFiles%\\Microsoft VS Code\\Code.exe",
+      "%ProgramFiles(x86)%\\Microsoft VS Code\\Code.exe"
+    ],
+    "windows_commands": ["code"],
+    "posix_commands": ["code", "code-insiders"]
+  },
+  "word": {
+    "display": "Microsoft Word",
+    "aliases": ["word", "ms word", "microsoft word", "winword"],
+    "process_names": ["WINWORD", "winword"],
+    "windows_paths": [
+      "%ProgramFiles%\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+      "%ProgramFiles%\\Microsoft Office\\Office16\\WINWORD.EXE"
+    ],
+    "windows_commands": ["winword"],
+    "posix_commands": []
+  },
+  "excel": {
+    "display": "Microsoft Excel",
+    "aliases": ["excel", "ms excel", "microsoft excel"],
+    "process_names": ["EXCEL", "excel"],
+    "windows_paths": [
+      "%ProgramFiles%\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
+      "%ProgramFiles%\\Microsoft Office\\Office16\\EXCEL.EXE"
+    ],
+    "windows_commands": ["excel"],
+    "posix_commands": []
+  },
+  "powerpoint": {
+    "display": "Microsoft PowerPoint",
+    "aliases": ["powerpoint", "power point", "ms powerpoint", "microsoft powerpoint", "ppt"],
+    "process_names": ["POWERPNT", "powerpnt"],
+    "windows_paths": [
+      "%ProgramFiles%\\Microsoft Office\\root\\Office16\\POWERPNT.EXE"
+    ],
+    "windows_commands": ["powerpnt"],
+    "posix_commands": []
+  },
+  "chrome": {
+    "display": "Google Chrome",
+    "aliases": ["chrome", "google chrome"],
+    "process_names": ["chrome", "Google Chrome"],
+    "windows_paths": [
+      "%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe",
+      "%ProgramFiles(x86)%\\Google\\Chrome\\Application\\chrome.exe",
+      "%LOCALAPPDATA%\\Google\\Chrome\\Application\\chrome.exe"
+    ],
+    "windows_commands": ["chrome"],
+    "posix_commands": ["google-chrome", "google-chrome-stable", "chromium", "chrome"]
+  },
+  "firefox": {
+    "display": "Mozilla Firefox",
+    "aliases": ["firefox", "mozilla firefox"],
+    "process_names": ["firefox"],
+    "windows_paths": [
+      "%ProgramFiles%\\Mozilla Firefox\\firefox.exe"
+    ],
+    "windows_commands": ["firefox"],
+    "posix_commands": ["firefox"]
+  },
+  "edge": {
+    "display": "Microsoft Edge",
+    "aliases": ["edge", "microsoft edge", "msedge"],
+    "process_names": ["msedge"],
+    "windows_paths": [
+      "%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe",
+      "%ProgramFiles%\\Microsoft\\Edge\\Application\\msedge.exe"
+    ],
+    "windows_commands": ["msedge"],
+    "posix_commands": ["microsoft-edge", "microsoft-edge-stable"]
+  },
+  "postman": {
+    "display": "Postman",
+    "aliases": ["postman"],
+    "process_names": ["Postman", "postman"],
+    "windows_paths": [
+      "%LOCALAPPDATA%\\Postman\\Postman.exe"
+    ],
+    "windows_commands": ["postman"],
+    "posix_commands": ["postman"]
+  },
+  "notepad": {
+    "display": "Notepad",
+    "aliases": ["notepad"],
+    "process_names": ["notepad"],
+    "windows_paths": ["%SystemRoot%\\System32\\notepad.exe"],
+    "windows_commands": ["notepad"],
+    "posix_commands": ["gedit", "nano"]
+  },
+  "calculator": {
+    "display": "Calculator",
+    "aliases": ["calculator", "calc"],
+    "process_names": ["CalculatorApp", "Calculator", "calc"],
+    "windows_paths": [],
+    "windows_commands": ["calc"],
+    "posix_commands": ["gnome-calculator"]
+  },
+  "explorer": {
+    "display": "File Explorer",
+    "aliases": ["file explorer", "explorer", "windows explorer"],
+    "process_names": ["explorer"],
+    "windows_paths": ["%SystemRoot%\\explorer.exe"],
+    "windows_commands": ["explorer"],
+    "posix_commands": ["xdg-open"]
+  },
+  "terminal": {
+    "display": "Windows Terminal",
+    "aliases": ["windows terminal", "terminal", "wt"],
+    "process_names": ["WindowsTerminal", "wt"],
+    "windows_paths": [],
+    "windows_commands": ["wt"],
+    "posix_commands": ["gnome-terminal", "konsole", "xterm"]
+  },
+  "cmd": {
+    "display": "Command Prompt",
+    "aliases": ["command prompt", "cmd", "command prompt window"],
+    "process_names": ["cmd"],
+    "windows_paths": ["%SystemRoot%\\System32\\cmd.exe"],
+    "windows_commands": ["cmd"],
+    "posix_commands": []
+  },
+  "powershell": {
+    "display": "PowerShell",
+    "aliases": ["powershell", "windows powershell"],
+    "process_names": ["powershell", "pwsh"],
+    "windows_paths": [
+      "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+    ],
+    "windows_commands": ["powershell"],
+    "posix_commands": ["pwsh"]
+  }
+}

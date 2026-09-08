@@ -162,7 +162,8 @@ def is_printer_inventory_lookup(text: str) -> bool:
             "added",
         }
     )
-    return list_action and installed_word
+    explicit_listing = bool(tokens & {"list", "show", "display"})
+    return (list_action and installed_word) or explicit_listing
 
 
 def clarification_suggestion(text: str) -> str | None:
